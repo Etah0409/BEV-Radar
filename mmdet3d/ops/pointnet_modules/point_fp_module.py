@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import torch
 from mmcv.cnn import ConvModule
 from mmcv.runner import BaseModule, force_fp32
@@ -15,32 +14,35 @@ class PointFPModule(BaseModule):
 
     Args:
         mlp_channels (list[int]): List of mlp channels.
-        norm_cfg (dict, optional): Type of normalization method.
+        norm_cfg (dict): Type of normalization method.
             Default: dict(type='BN2d').
     """
 
-    def __init__(self,
-                 mlp_channels: List[int],
-                 norm_cfg: dict = dict(type='BN2d'),
-                 init_cfg=None):
+    def __init__(self, mlp_channels: List[int], norm_cfg: dict = dict(type="BN2d"), init_cfg=None):
         super().__init__(init_cfg=init_cfg)
         self.fp16_enabled = False
         self.mlps = nn.Sequential()
         for i in range(len(mlp_channels) - 1):
             self.mlps.add_module(
-                f'layer{i}',
+                f"layer{i}",
                 ConvModule(
                     mlp_channels[i],
                     mlp_channels[i + 1],
                     kernel_size=(1, 1),
                     stride=(1, 1),
-                    conv_cfg=dict(type='Conv2d'),
-                    norm_cfg=norm_cfg))
+                    conv_cfg=dict(type="Conv2d"),
+                    norm_cfg=norm_cfg,
+                ),
+            )
 
     @force_fp32()
-    def forward(self, target: torch.Tensor, source: torch.Tensor,
-                target_feats: torch.Tensor,
-                source_feats: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        target: torch.Tensor,
+        source: torch.Tensor,
+        target_feats: torch.Tensor,
+        source_feats: torch.Tensor,
+    ) -> torch.Tensor:
         """forward.
 
         Args:
@@ -64,12 +66,10 @@ class PointFPModule(BaseModule):
 
             interpolated_feats = three_interpolate(source_feats, idx, weight)
         else:
-            interpolated_feats = source_feats.expand(*source_feats.size()[0:2],
-                                                     target.size(1))
+            interpolated_feats = source_feats.expand(*source_feats.size()[0:2], target.size(1))
 
         if target_feats is not None:
-            new_features = torch.cat([interpolated_feats, target_feats],
-                                     dim=1)  # (B, C2 + C1, n)
+            new_features = torch.cat([interpolated_feats, target_feats], dim=1)  # (B, C2 + C1, n)
         else:
             new_features = interpolated_feats
 

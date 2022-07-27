@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import numba
 import numpy as np
 import torch
@@ -6,24 +5,24 @@ import torch
 from mmdet3d.ops.iou3d.iou3d_utils import nms_gpu, nms_normal_gpu
 
 
-def box3d_multiclass_nms(mlvl_bboxes,
-                         mlvl_bboxes_for_nms,
-                         mlvl_scores,
-                         score_thr,
-                         max_num,
-                         cfg,
-                         mlvl_dir_scores=None,
-                         mlvl_attr_scores=None,
-                         mlvl_bboxes2d=None):
-    """Multi-class NMS for 3D boxes. The IoU used for NMS is defined as the 2D
-    IoU between BEV boxes.
+def box3d_multiclass_nms(
+    mlvl_bboxes,
+    mlvl_bboxes_for_nms,
+    mlvl_scores,
+    score_thr,
+    max_num,
+    cfg,
+    mlvl_dir_scores=None,
+    mlvl_attr_scores=None,
+    mlvl_bboxes2d=None,
+):
+    """Multi-class nms for 3D boxes.
 
     Args:
         mlvl_bboxes (torch.Tensor): Multi-level boxes with shape (N, M).
             M is the dimensions of boxes.
         mlvl_bboxes_for_nms (torch.Tensor): Multi-level boxes with shape
             (N, 5) ([x1, y1, x2, y2, ry]). N is the number of boxes.
-            The coordinate system of the BEV boxes is counterclockwise.
         mlvl_scores (torch.Tensor): Multi-level boxes with shape
             (N, C + 1). N is the number of boxes. C is the number of classes.
         score_thr (float): Score thredhold to filter boxes with low
@@ -38,8 +37,8 @@ def box3d_multiclass_nms(mlvl_bboxes,
             boxes. Defaults to None.
 
     Returns:
-        tuple[torch.Tensor]: Return results after nms, including 3D
-            bounding boxes, scores, labels, direction scores, attribute
+        tuple[torch.Tensor]: Return results after nms, including 3D \
+            bounding boxes, scores, labels, direction scores, attribute \
             scores (optional) and 2D bounding boxes (optional).
     """
     # do multi class nms
@@ -69,9 +68,7 @@ def box3d_multiclass_nms(mlvl_bboxes,
         _mlvl_bboxes = mlvl_bboxes[cls_inds, :]
         bboxes.append(_mlvl_bboxes[selected])
         scores.append(_scores[selected])
-        cls_label = mlvl_bboxes.new_full((len(selected), ),
-                                         i,
-                                         dtype=torch.long)
+        cls_label = mlvl_bboxes.new_full((len(selected),), i, dtype=torch.long)
         labels.append(cls_label)
 
         if mlvl_dir_scores is not None:
@@ -108,35 +105,35 @@ def box3d_multiclass_nms(mlvl_bboxes,
                 bboxes2d = bboxes2d[inds]
     else:
         bboxes = mlvl_scores.new_zeros((0, mlvl_bboxes.size(-1)))
-        scores = mlvl_scores.new_zeros((0, ))
-        labels = mlvl_scores.new_zeros((0, ), dtype=torch.long)
+        scores = mlvl_scores.new_zeros((0,))
+        labels = mlvl_scores.new_zeros((0,), dtype=torch.long)
         if mlvl_dir_scores is not None:
-            dir_scores = mlvl_scores.new_zeros((0, ))
+            dir_scores = mlvl_scores.new_zeros((0,))
         if mlvl_attr_scores is not None:
-            attr_scores = mlvl_scores.new_zeros((0, ))
+            attr_scores = mlvl_scores.new_zeros((0,))
         if mlvl_bboxes2d is not None:
             bboxes2d = mlvl_scores.new_zeros((0, 4))
 
     results = (bboxes, scores, labels)
 
     if mlvl_dir_scores is not None:
-        results = results + (dir_scores, )
+        results = results + (dir_scores,)
     if mlvl_attr_scores is not None:
-        results = results + (attr_scores, )
+        results = results + (attr_scores,)
     if mlvl_bboxes2d is not None:
-        results = results + (bboxes2d, )
+        results = results + (bboxes2d,)
 
     return results
 
 
 def aligned_3d_nms(boxes, scores, classes, thresh):
-    """3D NMS for aligned boxes.
+    """3d nms for aligned boxes.
 
     Args:
         boxes (torch.Tensor): Aligned box with shape [n, 6].
         scores (torch.Tensor): Scores of each box.
         classes (torch.Tensor): Class of each box.
-        thresh (float): IoU threshold for nms.
+        thresh (float): Iou threshold for nms.
 
     Returns:
         torch.Tensor: Indices of selected boxes.
@@ -148,32 +145,33 @@ def aligned_3d_nms(boxes, scores, classes, thresh):
     y2 = boxes[:, 4]
     z2 = boxes[:, 5]
     area = (x2 - x1) * (y2 - y1) * (z2 - z1)
-    zero = boxes.new_zeros(1, )
+    zero = boxes.new_zeros(
+        1,
+    )
 
     score_sorted = torch.argsort(scores)
     pick = []
-    while (score_sorted.shape[0] != 0):
+    while score_sorted.shape[0] != 0:
         last = score_sorted.shape[0]
         i = score_sorted[-1]
         pick.append(i)
 
-        xx1 = torch.max(x1[i], x1[score_sorted[:last - 1]])
-        yy1 = torch.max(y1[i], y1[score_sorted[:last - 1]])
-        zz1 = torch.max(z1[i], z1[score_sorted[:last - 1]])
-        xx2 = torch.min(x2[i], x2[score_sorted[:last - 1]])
-        yy2 = torch.min(y2[i], y2[score_sorted[:last - 1]])
-        zz2 = torch.min(z2[i], z2[score_sorted[:last - 1]])
+        xx1 = torch.max(x1[i], x1[score_sorted[: last - 1]])
+        yy1 = torch.max(y1[i], y1[score_sorted[: last - 1]])
+        zz1 = torch.max(z1[i], z1[score_sorted[: last - 1]])
+        xx2 = torch.min(x2[i], x2[score_sorted[: last - 1]])
+        yy2 = torch.min(y2[i], y2[score_sorted[: last - 1]])
+        zz2 = torch.min(z2[i], z2[score_sorted[: last - 1]])
         classes1 = classes[i]
-        classes2 = classes[score_sorted[:last - 1]]
+        classes2 = classes[score_sorted[: last - 1]]
         inter_l = torch.max(zero, xx2 - xx1)
         inter_w = torch.max(zero, yy2 - yy1)
         inter_h = torch.max(zero, zz2 - zz1)
 
         inter = inter_l * inter_w * inter_h
-        iou = inter / (area[i] + area[score_sorted[:last - 1]] - inter)
+        iou = inter / (area[i] + area[score_sorted[: last - 1]] - inter)
         iou = iou * (classes1 == classes2).float()
-        score_sorted = score_sorted[torch.nonzero(
-            iou <= thresh, as_tuple=False).flatten()]
+        score_sorted = score_sorted[torch.nonzero(iou <= thresh, as_tuple=False).flatten()]
 
     indices = boxes.new_tensor(pick, dtype=torch.long)
     return indices
@@ -190,8 +188,8 @@ def circle_nms(dets, thresh, post_max_size=83):
     Args:
         dets (torch.Tensor): Detection results with the shape of [N, 3].
         thresh (float): Value of threshold.
-        post_max_size (int, optional): Max number of prediction to be kept.
-            Defaults to 83.
+        post_max_size (int): Max number of prediction to be kept. Defaults
+            to 83
 
     Returns:
         torch.Tensor: Indexes of the detections to be kept.
@@ -205,8 +203,7 @@ def circle_nms(dets, thresh, post_max_size=83):
     keep = []
     for _i in range(ndets):
         i = order[_i]  # start with highest score box
-        if suppressed[
-                i] == 1:  # if any box have enough iou with this, remove it
+        if suppressed[i] == 1:  # if any box have enough iou with this, remove it
             continue
         keep.append(i)
         for _j in range(_i + 1, ndets):
@@ -214,7 +211,7 @@ def circle_nms(dets, thresh, post_max_size=83):
             if suppressed[j] == 1:
                 continue
             # calculate center distance between i and j box
-            dist = (x1[i] - x1[j])**2 + (y1[i] - y1[j])**2
+            dist = (x1[i] - x1[j]) ** 2 + (y1[i] - y1[j]) ** 2
 
             # ovr = inter / areas[j]
             if dist <= thresh:

@@ -12,8 +12,7 @@ class FurthestPointSampling(Function):
     """
 
     @staticmethod
-    def forward(ctx, points_xyz: torch.Tensor,
-                num_points: int) -> torch.Tensor:
+    def forward(ctx, points_xyz: torch.Tensor, num_points: int) -> torch.Tensor:
         """forward.
 
         Args:
@@ -30,7 +29,8 @@ class FurthestPointSampling(Function):
         temp = torch.cuda.FloatTensor(B, N).fill_(1e10)
 
         furthest_point_sample_ext.furthest_point_sampling_wrapper(
-            B, N, num_points, points_xyz, temp, output)
+            B, N, num_points, points_xyz, temp, output
+        )
         ctx.mark_non_differentiable(output)
         return output
 
@@ -47,8 +47,7 @@ class FurthestPointSamplingWithDist(Function):
     """
 
     @staticmethod
-    def forward(ctx, points_dist: torch.Tensor,
-                num_points: int) -> torch.Tensor:
+    def forward(ctx, points_dist: torch.Tensor, num_points: int) -> torch.Tensor:
         """forward.
 
         Args:
@@ -65,7 +64,8 @@ class FurthestPointSamplingWithDist(Function):
         temp = points_dist.new_zeros([B, N]).fill_(1e10)
 
         furthest_point_sample_ext.furthest_point_sampling_with_dist_wrapper(
-            B, N, num_points, points_dist, temp, output)
+            B, N, num_points, points_dist, temp, output
+        )
         ctx.mark_non_differentiable(output)
         return output
 

@@ -2,14 +2,12 @@ import torch
 from torch import nn
 from torch.autograd import Function
 
-from .voxel_layer import (dynamic_point_to_voxel_backward,
-                          dynamic_point_to_voxel_forward)
+from .voxel_layer import dynamic_point_to_voxel_backward, dynamic_point_to_voxel_forward
 
 
 class _dynamic_scatter(Function):
-
     @staticmethod
-    def forward(ctx, feats, coors, reduce_type='max'):
+    def forward(ctx, feats, coors, reduce_type="max"):
         """convert kitti points(N, >=3) to voxels.
 
         Args:
@@ -25,25 +23,27 @@ class _dynamic_scatter(Function):
             coordinates: [M, ndim] int tensor, voxel coordinates.
         """
         results = dynamic_point_to_voxel_forward(feats, coors, reduce_type)
-        (voxel_feats, voxel_coors, point2voxel_map,
-         voxel_points_count) = results
+        (voxel_feats, voxel_coors, point2voxel_map, voxel_points_count) = results
         ctx.reduce_type = reduce_type
-        ctx.save_for_backward(feats, voxel_feats, point2voxel_map,
-                              voxel_points_count)
+        ctx.save_for_backward(feats, voxel_feats, point2voxel_map, voxel_points_count)
         ctx.mark_non_differentiable(voxel_coors)
         return voxel_feats, voxel_coors
 
     @staticmethod
     def backward(ctx, grad_voxel_feats, grad_voxel_coors=None):
-        (feats, voxel_feats, point2voxel_map,
-         voxel_points_count) = ctx.saved_tensors
+        (feats, voxel_feats, point2voxel_map, voxel_points_count) = ctx.saved_tensors
         grad_feats = torch.zeros_like(feats)
         # TODO: whether to use index put or use cuda_backward
         # To use index put, need point to voxel index
-        dynamic_point_to_voxel_backward(grad_feats,
-                                        grad_voxel_feats.contiguous(), feats,
-                                        voxel_feats, point2voxel_map,
-                                        voxel_points_count, ctx.reduce_type)
+        dynamic_point_to_voxel_backward(
+            grad_feats,
+            grad_voxel_feats.contiguous(),
+            feats,
+            voxel_feats,
+            point2voxel_map,
+            voxel_points_count,
+            ctx.reduce_type,
+        )
         return grad_feats, None, None
 
 
@@ -51,7 +51,6 @@ dynamic_scatter = _dynamic_scatter.apply
 
 
 class DynamicScatter(nn.Module):
-
     def __init__(self, voxel_size, point_cloud_range, average_points: bool):
         super(DynamicScatter, self).__init__()
         """Scatters points into voxels, used in the voxel encoder with
@@ -72,7 +71,7 @@ class DynamicScatter(nn.Module):
         self.average_points = average_points
 
     def forward_single(self, points, coors):
-        reduce = 'mean' if self.average_points else 'max'
+        reduce = "mean" if self.average_points else "max"
         return dynamic_scatter(points.contiguous(), coors.contiguous(), reduce)
 
     def forward(self, points, coors):
@@ -87,10 +86,8 @@ class DynamicScatter(nn.Module):
             voxels, voxel_coors = [], []
             for i in range(batch_size):
                 inds = torch.where(coors[:, 0] == i)
-                voxel, voxel_coor = self.forward_single(
-                    points[inds], coors[inds][:, 1:])
-                coor_pad = nn.functional.pad(
-                    voxel_coor, (1, 0), mode='constant', value=i)
+                voxel, voxel_coor = self.forward_single(points[inds], coors[inds][:, 1:])
+                coor_pad = nn.functional.pad(voxel_coor, (1, 0), mode="constant", value=i)
                 voxel_coors.append(coor_pad)
                 voxels.append(voxel)
             features = torch.cat(voxels, dim=0)
@@ -99,9 +96,9 @@ class DynamicScatter(nn.Module):
             return features, feature_coors
 
     def __repr__(self):
-        tmpstr = self.__class__.__name__ + '('
-        tmpstr += 'voxel_size=' + str(self.voxel_size)
-        tmpstr += ', point_cloud_range=' + str(self.point_cloud_range)
-        tmpstr += ', average_points=' + str(self.average_points)
-        tmpstr += ')'
+        tmpstr = self.__class__.__name__ + "("
+        tmpstr += "voxel_size=" + str(self.voxel_size)
+        tmpstr += ", point_cloud_range=" + str(self.point_cloud_range)
+        tmpstr += ", average_points=" + str(self.average_points)
+        tmpstr += ")"
         return tmpstr

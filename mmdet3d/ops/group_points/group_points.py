@@ -14,35 +14,37 @@ class QueryAndGroup(nn.Module):
     Groups with a ball query of radius
 
     Args:
-        max_radius (float): The maximum radius of the balls.
+        max_radius (float | None): The maximum radius of the balls.
             If None is given, we will use kNN sampling instead of ball query.
         sample_num (int): Maximum number of features to gather in the ball.
-        min_radius (float, optional): The minimum radius of the balls.
-            Default: 0.
-        use_xyz (bool, optional): Whether to use xyz.
+        min_radius (float): The minimum radius of the balls.
+        use_xyz (bool): Whether to use xyz.
             Default: True.
-        return_grouped_xyz (bool, optional): Whether to return grouped xyz.
+        return_grouped_xyz (bool): Whether to return grouped xyz.
             Default: False.
-        normalize_xyz (bool, optional): Whether to normalize xyz.
+        normalize_xyz (bool): Whether to normalize xyz.
             Default: False.
-        uniform_sample (bool, optional): Whether to sample uniformly.
+        uniform_sample (bool): Whether to sample uniformly.
             Default: False
-        return_unique_cnt (bool, optional): Whether to return the count of
-            unique samples. Default: False.
-        return_grouped_idx (bool, optional): Whether to return grouped idx.
+        return_unique_cnt (bool): Whether to return the count of
+            unique samples.
+            Default: False.
+        return_grouped_idx (bool): Whether to return grouped idx.
             Default: False.
     """
 
-    def __init__(self,
-                 max_radius,
-                 sample_num,
-                 min_radius=0,
-                 use_xyz=True,
-                 return_grouped_xyz=False,
-                 normalize_xyz=False,
-                 uniform_sample=False,
-                 return_unique_cnt=False,
-                 return_grouped_idx=False):
+    def __init__(
+        self,
+        max_radius,
+        sample_num,
+        min_radius=0,
+        use_xyz=True,
+        return_grouped_xyz=False,
+        normalize_xyz=False,
+        uniform_sample=False,
+        return_unique_cnt=False,
+        return_grouped_idx=False,
+    ):
         super(QueryAndGroup, self).__init__()
         self.max_radius = max_radius
         self.min_radius = min_radius
@@ -54,12 +56,11 @@ class QueryAndGroup(nn.Module):
         self.return_unique_cnt = return_unique_cnt
         self.return_grouped_idx = return_grouped_idx
         if self.return_unique_cnt:
-            assert self.uniform_sample, \
-                'uniform_sample should be True when ' \
-                'returning the count of unique samples'
+            assert self.uniform_sample, (
+                "uniform_sample should be True when " "returning the count of unique samples"
+            )
         if self.max_radius is None:
-            assert not self.normalize_xyz, \
-                'can not normalize grouped xyz when max_radius is None'
+            assert not self.normalize_xyz, "can not normalize grouped xyz when max_radius is None"
 
     def forward(self, points_xyz, center_xyz, features=None):
         """forward.
@@ -78,8 +79,9 @@ class QueryAndGroup(nn.Module):
             idx = knn(self.sample_num, points_xyz, center_xyz, False)
             idx = idx.transpose(1, 2).contiguous()
         else:
-            idx = ball_query(self.min_radius, self.max_radius, self.sample_num,
-                             points_xyz, center_xyz)
+            idx = ball_query(
+                self.min_radius, self.max_radius, self.sample_num, points_xyz, center_xyz
+            )
 
         if self.uniform_sample:
             unique_cnt = torch.zeros((idx.shape[0], idx.shape[1]))
@@ -89,17 +91,17 @@ class QueryAndGroup(nn.Module):
                     num_unique = unique_ind.shape[0]
                     unique_cnt[i_batch, i_region] = num_unique
                     sample_ind = torch.randint(
-                        0,
-                        num_unique, (self.sample_num - num_unique, ),
-                        dtype=torch.long)
+                        0, num_unique, (self.sample_num - num_unique,), dtype=torch.long
+                    )
                     all_ind = torch.cat((unique_ind, unique_ind[sample_ind]))
                     idx[i_batch, i_region, :] = all_ind
 
         xyz_trans = points_xyz.transpose(1, 2).contiguous()
         # (B, 3, npoint, sample_num)
         grouped_xyz = grouping_operation(xyz_trans, idx)
-        grouped_xyz_diff = grouped_xyz - \
-            center_xyz.transpose(1, 2).unsqueeze(-1)  # relative offsets
+        grouped_xyz_diff = grouped_xyz - center_xyz.transpose(1, 2).unsqueeze(
+            -1
+        )  # relative offsets
         if self.normalize_xyz:
             grouped_xyz_diff /= self.max_radius
 
@@ -107,13 +109,11 @@ class QueryAndGroup(nn.Module):
             grouped_features = grouping_operation(features, idx)
             if self.use_xyz:
                 # (B, C + 3, npoint, sample_num)
-                new_features = torch.cat([grouped_xyz_diff, grouped_features],
-                                         dim=1)
+                new_features = torch.cat([grouped_xyz_diff, grouped_features], dim=1)
             else:
                 new_features = grouped_features
         else:
-            assert (self.use_xyz
-                    ), 'Cannot have not features and not use xyz as a feature!'
+            assert self.use_xyz, "Cannot have not features and not use xyz as a feature!"
             new_features = grouped_xyz_diff
 
         ret = [new_features]
@@ -142,10 +142,7 @@ class GroupAll(nn.Module):
         super().__init__()
         self.use_xyz = use_xyz
 
-    def forward(self,
-                xyz: torch.Tensor,
-                new_xyz: torch.Tensor,
-                features: torch.Tensor = None):
+    def forward(self, xyz: torch.Tensor, new_xyz: torch.Tensor, features: torch.Tensor = None):
         """forward.
 
         Args:
@@ -160,8 +157,7 @@ class GroupAll(nn.Module):
         if features is not None:
             grouped_features = features.unsqueeze(2)
             if self.use_xyz:
-                new_features = torch.cat([grouped_xyz, grouped_features],
-                                         dim=1)  # (B, 3 + C, 1, N)
+                new_features = torch.cat([grouped_xyz, grouped_features], dim=1)  # (B, 3 + C, 1, N)
             else:
                 new_features = grouped_features
         else:
@@ -177,8 +173,7 @@ class GroupingOperation(Function):
     """
 
     @staticmethod
-    def forward(ctx, features: torch.Tensor,
-                indices: torch.Tensor) -> torch.Tensor:
+    def forward(ctx, features: torch.Tensor, indices: torch.Tensor) -> torch.Tensor:
         """forward.
 
         Args:
@@ -196,15 +191,13 @@ class GroupingOperation(Function):
         _, C, N = features.size()
         output = torch.cuda.FloatTensor(B, C, nfeatures, nsample)
 
-        group_points_ext.forward(B, C, N, nfeatures, nsample, features,
-                                 indices, output)
+        group_points_ext.forward(B, C, N, nfeatures, nsample, features, indices, output)
 
         ctx.for_backwards = (indices, N)
         return output
 
     @staticmethod
-    def backward(ctx,
-                 grad_out: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def backward(ctx, grad_out: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """backward.
 
         Args:
@@ -220,8 +213,7 @@ class GroupingOperation(Function):
         grad_features = torch.cuda.FloatTensor(B, C, N).zero_()
 
         grad_out_data = grad_out.data.contiguous()
-        group_points_ext.backward(B, C, N, npoint, nsample, grad_out_data, idx,
-                                  grad_features.data)
+        group_points_ext.backward(B, C, N, npoint, nsample, grad_out_data, idx, grad_features.data)
         return grad_features, None
 
 

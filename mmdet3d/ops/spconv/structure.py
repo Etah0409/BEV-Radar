@@ -10,7 +10,7 @@ def scatter_nd(indices, updates, shape):
     """
     ret = torch.zeros(*shape, dtype=updates.dtype, device=updates.device)
     ndim = indices.shape[-1]
-    output_shape = list(indices.shape[:-1]) + shape[indices.shape[-1]:]
+    output_shape = list(indices.shape[:-1]) + shape[indices.shape[-1] :]
     flatted_indices = indices.view(-1, ndim)
     slices = [flatted_indices[:, i] for i in range(ndim)]
     slices += [Ellipsis]
@@ -18,14 +18,8 @@ def scatter_nd(indices, updates, shape):
     return ret
 
 
-class SparseConvTensor(object):
-
-    def __init__(self,
-                 features,
-                 indices,
-                 spatial_shape,
-                 batch_size,
-                 grid=None):
+class SparseConvTensor:
+    def __init__(self, features, indices, spatial_shape, batch_size, grid=None):
         """
         Args:
             grid: pre-allocated grid tensor.
@@ -53,8 +47,9 @@ class SparseConvTensor(object):
         return None
 
     def dense(self, channels_first=True):
-        output_shape = [self.batch_size] + list(
-            self.spatial_shape) + [self.features.shape[1]]
+        output_shape = (
+            [self.batch_size] + list(self.spatial_shape) + [self.features.shape[1]]
+        )
         res = scatter_nd(self.indices.long(), self.features, output_shape)
         if not channels_first:
             return res
@@ -65,5 +60,4 @@ class SparseConvTensor(object):
 
     @property
     def sparity(self):
-        return (self.indices.shape[0] / np.prod(self.spatial_shape) /
-                self.batch_size)
+        return self.indices.shape[0] / np.prod(self.spatial_shape) / self.batch_size

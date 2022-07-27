@@ -1,7 +1,6 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from mmcv.cnn import build_conv_layer, build_norm_layer
 from torch import nn
-
+import torch
 from mmdet3d.ops import spconv
 from mmdet.models.backbones.resnet import BasicBlock, Bottleneck
 
@@ -14,23 +13,17 @@ class SparseBottleneck(Bottleneck, spconv.SparseModule):
     Args:
         inplanes (int): inplanes of block.
         planes (int): planes of block.
-        stride (int, optional): stride of the first block. Default: 1.
-        downsample (Module, optional): down sample module for block.
-        conv_cfg (dict, optional): dictionary to construct and config conv
-            layer. Default: None.
-        norm_cfg (dict, optional): dictionary to construct and config norm
-            layer. Default: dict(type='BN').
+        stride (int): stride of the first block. Default: 1
+        downsample (None | Module): down sample module for block.
+        conv_cfg (dict): dictionary to construct and config conv layer.
+            Default: None
+        norm_cfg (dict): dictionary to construct and config norm layer.
+            Default: dict(type='BN')
     """
 
     expansion = 4
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 conv_cfg=None,
-                 norm_cfg=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, conv_cfg=None, norm_cfg=None):
 
         spconv.SparseModule.__init__(self)
         Bottleneck.__init__(
@@ -40,7 +33,8 @@ class SparseBottleneck(Bottleneck, spconv.SparseModule):
             stride=stride,
             downsample=downsample,
             conv_cfg=conv_cfg,
-            norm_cfg=norm_cfg)
+            norm_cfg=norm_cfg,
+        )
 
     def forward(self, x):
         identity = x.features
@@ -73,23 +67,17 @@ class SparseBasicBlock(BasicBlock, spconv.SparseModule):
     Args:
         inplanes (int): inplanes of block.
         planes (int): planes of block.
-        stride (int, optional): stride of the first block. Default: 1.
-        downsample (Module, optional): down sample module for block.
-        conv_cfg (dict, optional): dictionary to construct and config conv
-            layer. Default: None.
-        norm_cfg (dict, optional): dictionary to construct and config norm
-            layer. Default: dict(type='BN').
+        stride (int): stride of the first block. Default: 1
+        downsample (None | Module): down sample module for block.
+        conv_cfg (dict): dictionary to construct and config conv layer.
+            Default: None
+        norm_cfg (dict): dictionary to construct and config norm layer.
+            Default: dict(type='BN')
     """
 
     expansion = 1
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 downsample=None,
-                 conv_cfg=None,
-                 norm_cfg=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, conv_cfg=None, norm_cfg=None):
         spconv.SparseModule.__init__(self)
         BasicBlock.__init__(
             self,
@@ -98,12 +86,13 @@ class SparseBasicBlock(BasicBlock, spconv.SparseModule):
             stride=stride,
             downsample=downsample,
             conv_cfg=conv_cfg,
-            norm_cfg=norm_cfg)
+            norm_cfg=norm_cfg,
+        )
 
     def forward(self, x):
         identity = x.features
 
-        assert x.features.dim() == 2, f'x.features.dim()={x.features.dim()}'
+        assert x.features.dim() == 2, f"x.features.dim()={x.features.dim()}"
 
         out = self.conv1(x)
         out.features = self.norm1(out.features)
@@ -121,15 +110,17 @@ class SparseBasicBlock(BasicBlock, spconv.SparseModule):
         return out
 
 
-def make_sparse_convmodule(in_channels,
-                           out_channels,
-                           kernel_size,
-                           indice_key,
-                           stride=1,
-                           padding=0,
-                           conv_type='SubMConv3d',
-                           norm_cfg=None,
-                           order=('conv', 'norm', 'act')):
+def make_sparse_convmodule(
+    in_channels,
+    out_channels,
+    kernel_size,
+    indice_key,
+    stride=1,
+    padding=0,
+    conv_type="SubMConv3d",
+    norm_cfg=None,
+    order=("conv", "norm", "act"),
+):
     """Make sparse convolution module.
 
     Args:
@@ -149,16 +140,17 @@ def make_sparse_convmodule(in_channels,
         spconv.SparseSequential: sparse convolution module.
     """
     assert isinstance(order, tuple) and len(order) <= 3
-    assert set(order) | {'conv', 'norm', 'act'} == {'conv', 'norm', 'act'}
+    assert set(order) | {"conv", "norm", "act"} == {"conv", "norm", "act"}
 
     conv_cfg = dict(type=conv_type, indice_key=indice_key)
 
     layers = list()
     for layer in order:
-        if layer == 'conv':
+        if layer == "conv":
             if conv_type not in [
-                    'SparseInverseConv3d', 'SparseInverseConv2d',
-                    'SparseInverseConv1d'
+                "SparseInverseConv3d",
+                "SparseInverseConv2d",
+                "SparseInverseConv1d",
             ]:
                 layers.append(
                     build_conv_layer(
@@ -168,18 +160,16 @@ def make_sparse_convmodule(in_channels,
                         kernel_size,
                         stride=stride,
                         padding=padding,
-                        bias=False))
+                        bias=False,
+                    )
+                )
             else:
                 layers.append(
-                    build_conv_layer(
-                        conv_cfg,
-                        in_channels,
-                        out_channels,
-                        kernel_size,
-                        bias=False))
-        elif layer == 'norm':
+                    build_conv_layer(conv_cfg, in_channels, out_channels, kernel_size, bias=False)
+                )
+        elif layer == "norm":
             layers.append(build_norm_layer(norm_cfg, out_channels)[1])
-        elif layer == 'act':
+        elif layer == "act":
             layers.append(nn.ReLU(inplace=True))
 
     layers = spconv.SparseSequential(*layers)

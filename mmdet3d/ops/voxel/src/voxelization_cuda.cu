@@ -53,9 +53,9 @@ __global__ void dynamic_voxelize_kernel(
       coors_offset[1] = -1;
       coors_offset[2] = -1;
     } else {
-      coors_offset[0] = c_z;
+      coors_offset[0] = c_x;
       coors_offset[1] = c_y;
-      coors_offset[2] = c_x;
+      coors_offset[2] = c_z;
     }
   }
 }

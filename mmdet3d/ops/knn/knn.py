@@ -13,11 +13,9 @@ class KNN(Function):
     """
 
     @staticmethod
-    def forward(ctx,
-                k: int,
-                xyz: torch.Tensor,
-                center_xyz: torch.Tensor = None,
-                transposed: bool = False) -> torch.Tensor:
+    def forward(
+        ctx, k: int, xyz: torch.Tensor, center_xyz: torch.Tensor = None, transposed: bool = False
+    ) -> torch.Tensor:
         """Forward.
 
         Args:
@@ -47,8 +45,9 @@ class KNN(Function):
         assert center_xyz.is_contiguous()  # [B, npoint, 3]
 
         center_xyz_device = center_xyz.get_device()
-        assert center_xyz_device == xyz.get_device(), \
-            'center_xyz and xyz should be put on the same device'
+        assert (
+            center_xyz_device == xyz.get_device()
+        ), "center_xyz and xyz should be put on the same device"
         if torch.cuda.current_device() != center_xyz_device:
             torch.cuda.set_device(center_xyz_device)
 

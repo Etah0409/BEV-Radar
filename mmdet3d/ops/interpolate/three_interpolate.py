@@ -6,10 +6,10 @@ from . import interpolate_ext
 
 
 class ThreeInterpolate(Function):
-
     @staticmethod
-    def forward(ctx, features: torch.Tensor, indices: torch.Tensor,
-                weight: torch.Tensor) -> torch.Tensor:
+    def forward(
+        ctx, features: torch.Tensor, indices: torch.Tensor, weight: torch.Tensor
+    ) -> torch.Tensor:
         """Performs weighted linear interpolation on 3 features.
 
         Args:
@@ -31,14 +31,11 @@ class ThreeInterpolate(Function):
         ctx.three_interpolate_for_backward = (indices, weight, m)
         output = torch.cuda.FloatTensor(B, c, n)
 
-        interpolate_ext.three_interpolate_wrapper(B, c, m, n, features,
-                                                  indices, weight, output)
+        interpolate_ext.three_interpolate_wrapper(B, c, m, n, features, indices, weight, output)
         return output
 
     @staticmethod
-    def backward(
-        ctx, grad_out: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def backward(ctx, grad_out: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Backward of three interpolate.
 
         Args:
@@ -53,10 +50,9 @@ class ThreeInterpolate(Function):
         grad_features = torch.cuda.FloatTensor(B, c, m).zero_()
         grad_out_data = grad_out.data.contiguous()
 
-        interpolate_ext.three_interpolate_grad_wrapper(B, c, n, m,
-                                                       grad_out_data, idx,
-                                                       weight,
-                                                       grad_features.data)
+        interpolate_ext.three_interpolate_grad_wrapper(
+            B, c, n, m, grad_out_data, idx, weight, grad_features.data
+        )
         return grad_features, None, None
 
 

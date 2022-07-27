@@ -20,12 +20,13 @@ from .structure import SparseConvTensor
 
 
 def is_spconv_module(module):
-    spconv_modules = (SparseModule, )
+    spconv_modules = (SparseModule,)
     return isinstance(module, spconv_modules)
 
 
 def is_sparse_conv(module):
     from .conv import SparseConvolution
+
     return isinstance(module, SparseConvolution)
 
 
@@ -46,6 +47,7 @@ def _mean_update(vals, m_vals, t):
 class SparseModule(nn.Module):
     """place holder, All module subclass from this will take sptensor in
     SparseSequential."""
+
     pass
 
 
@@ -92,15 +94,15 @@ class SparseSequential(SparseModule):
                 self.add_module(str(idx), module)
         for name, module in kwargs.items():
             if sys.version_info < (3, 6):
-                raise ValueError('kwargs only supported in py36+')
+                raise ValueError("kwargs only supported in py36+")
             if name in self._modules:
-                raise ValueError('name exists.')
+                raise ValueError("name exists.")
             self.add_module(name, module)
         self._sparity_dict = {}
 
     def __getitem__(self, idx):
         if not (-len(self) <= idx < len(self)):
-            raise IndexError('index {} is out of range'.format(idx))
+            raise IndexError("index {} is out of range".format(idx))
         if idx < 0:
             idx += len(self)
         it = iter(self._modules.values())
@@ -119,7 +121,7 @@ class SparseSequential(SparseModule):
         if name is None:
             name = str(len(self._modules))
             if name in self._modules:
-                raise KeyError('name exists')
+                raise KeyError("name exists")
         self.add_module(name, module)
 
     def forward(self, input):
@@ -142,13 +144,13 @@ class SparseSequential(SparseModule):
         no effect.
         """
         from .conv import SparseConvolution
+
         mods = [v for k, v in self._modules.items()]
         fused_mods = []
         idx = 0
         while idx < len(mods):
             if is_sparse_conv(mods[idx]):
-                if idx < len(mods) - 1 and isinstance(mods[idx + 1],
-                                                      nn.BatchNorm1d):
+                if idx < len(mods) - 1 and isinstance(mods[idx + 1], nn.BatchNorm1d):
                     new_module = SparseConvolution(
                         ndim=mods[idx].ndim,
                         in_channels=mods[idx].in_channels,
@@ -171,11 +173,12 @@ class SparseSequential(SparseModule):
                     conv = new_module
                     bn = mods[idx + 1]
                     conv.bias.data.zero_()
-                    conv.weight.data[:] = conv.weight.data * bn.weight.data / (
-                        torch.sqrt(bn.running_var) + bn.eps)
-                    conv.bias.data[:] = (
-                        conv.bias.data - bn.running_mean) * bn.weight.data / (
-                            torch.sqrt(bn.running_var) + bn.eps) + bn.bias.data
+                    conv.weight.data[:] = (
+                        conv.weight.data * bn.weight.data / (torch.sqrt(bn.running_var) + bn.eps)
+                    )
+                    conv.bias.data[:] = (conv.bias.data - bn.running_mean) * bn.weight.data / (
+                        torch.sqrt(bn.running_var) + bn.eps
+                    ) + bn.bias.data
                     fused_mods.append(conv)
                     idx += 2
                 else:

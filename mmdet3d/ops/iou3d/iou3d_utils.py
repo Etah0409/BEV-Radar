@@ -4,7 +4,7 @@ from . import iou3d_cuda
 
 
 def boxes_iou_bev(boxes_a, boxes_b):
-    """Calculate boxes IoU in the Bird's Eye View.
+    """Calculate boxes IoU in the bird view.
 
     Args:
         boxes_a (torch.Tensor): Input boxes a with shape (M, 5).
@@ -13,38 +13,31 @@ def boxes_iou_bev(boxes_a, boxes_b):
     Returns:
         ans_iou (torch.Tensor): IoU result with shape (M, N).
     """
-    ans_iou = boxes_a.new_zeros(
-        torch.Size((boxes_a.shape[0], boxes_b.shape[0])))
+    ans_iou = boxes_a.new_zeros(torch.Size((boxes_a.shape[0], boxes_b.shape[0])))
 
-    iou3d_cuda.boxes_iou_bev_gpu(boxes_a.contiguous(), boxes_b.contiguous(),
-                                 ans_iou)
+    iou3d_cuda.boxes_iou_bev_gpu(boxes_a.contiguous(), boxes_b.contiguous(), ans_iou)
 
     return ans_iou
 
 
-def nms_gpu(boxes, scores, thresh, pre_max_size=None, post_max_size=None):
-    """NMS function GPU implementation (for BEV boxes). The overlap of two
-    boxes for IoU calculation is defined as the exact overlapping area of the
-    two boxes. In this function, one can also set `pre_max_size` and
-    `post_max_size`.
+def nms_gpu(boxes, scores, thresh, pre_maxsize=None, post_max_size=None):
+    """Nms function with gpu implementation.
 
     Args:
         boxes (torch.Tensor): Input boxes with the shape of [N, 5]
             ([x1, y1, x2, y2, ry]).
         scores (torch.Tensor): Scores of boxes with the shape of [N].
         thresh (int): Threshold.
-        pre_max_size (int, optional): Max size of boxes before NMS.
-            Default: None.
-        post_max_size (int, optional): Max size of boxes after NMS.
-            Default: None.
+        pre_maxsize (int): Max size of boxes before nms. Default: None.
+        post_maxsize (int): Max size of boxes after nms. Default: None.
 
     Returns:
-        torch.Tensor: Indexes after NMS.
+        torch.Tensor: Indexes after nms.
     """
     order = scores.sort(0, descending=True)[1]
 
-    if pre_max_size is not None:
-        order = order[:pre_max_size]
+    if pre_maxsize is not None:
+        order = order[:pre_maxsize]
     boxes = boxes[order].contiguous()
 
     keep = torch.zeros(boxes.size(0), dtype=torch.long)
@@ -56,14 +49,12 @@ def nms_gpu(boxes, scores, thresh, pre_max_size=None, post_max_size=None):
 
 
 def nms_normal_gpu(boxes, scores, thresh):
-    """Normal NMS function GPU implementation (for BEV boxes). The overlap of
-    two boxes for IoU calculation is defined as the exact overlapping area of
-    the two boxes WITH their yaw angle set to 0.
+    """Normal non maximum suppression on GPU.
 
     Args:
         boxes (torch.Tensor): Input boxes with shape (N, 5).
         scores (torch.Tensor): Scores of predicted boxes with shape (N).
-        thresh (torch.Tensor): Threshold of NMS.
+        thresh (torch.Tensor): Threshold of non maximum suppression.
 
     Returns:
         torch.Tensor: Remaining indices with scores in descending order.
@@ -73,6 +64,5 @@ def nms_normal_gpu(boxes, scores, thresh):
     boxes = boxes[order].contiguous()
 
     keep = torch.zeros(boxes.size(0), dtype=torch.long)
-    num_out = iou3d_cuda.nms_normal_gpu(boxes, keep, thresh,
-                                        boxes.device.index)
+    num_out = iou3d_cuda.nms_normal_gpu(boxes, keep, thresh, boxes.device.index)
     return order[keep[:num_out].cuda(boxes.device)].contiguous()

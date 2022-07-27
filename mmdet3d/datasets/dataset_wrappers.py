@@ -1,11 +1,10 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import numpy as np
 
 from .builder import DATASETS
 
 
 @DATASETS.register_module()
-class CBGSDataset(object):
+class CBGSDataset:
     """A wrapper of class sampled dataset with ann_file path. Implementation of
     paper `Class-balanced Grouping and Sampling for Point Cloud 3D Object
     Detection <https://arxiv.org/abs/1908.09492.>`_.
@@ -22,10 +21,13 @@ class CBGSDataset(object):
         self.cat2id = {name: i for i, name in enumerate(self.CLASSES)}
         self.sample_indices = self._get_sample_indices()
         # self.dataset.data_infos = self.data_infos
-        if hasattr(self.dataset, 'flag'):
+        if hasattr(self.dataset, "flag"):
             self.flag = np.array(
-                [self.dataset.flag[ind] for ind in self.sample_indices],
-                dtype=np.uint8)
+                [self.dataset.flag[ind] for ind in self.sample_indices], dtype=np.uint8
+            )
+    
+    def set_epoch(self, epoch):
+        self.dataset.set_epoch(epoch)
 
     def _get_sample_indices(self):
         """Load annotations from ann_file.
@@ -41,11 +43,9 @@ class CBGSDataset(object):
             sample_cat_ids = self.dataset.get_cat_ids(idx)
             for cat_id in sample_cat_ids:
                 class_sample_idxs[cat_id].append(idx)
-        duplicated_samples = sum(
-            [len(v) for _, v in class_sample_idxs.items()])
+        duplicated_samples = sum([len(v) for _, v in class_sample_idxs.items()])
         class_distribution = {
-            k: len(v) / duplicated_samples
-            for k, v in class_sample_idxs.items()
+            k: len(v) / duplicated_samples for k, v in class_sample_idxs.items()
         }
 
         sample_indices = []
@@ -53,9 +53,9 @@ class CBGSDataset(object):
         frac = 1.0 / len(self.CLASSES)
         ratios = [frac / v for v in class_distribution.values()]
         for cls_inds, ratio in zip(list(class_sample_idxs.values()), ratios):
-            sample_indices += np.random.choice(cls_inds,
-                                               int(len(cls_inds) *
-                                                   ratio)).tolist()
+            sample_indices += np.random.choice(
+                cls_inds, int(len(cls_inds) * ratio)
+            ).tolist()
         return sample_indices
 
     def __getitem__(self, idx):

@@ -1,7 +1,6 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from mmcv.utils import Registry
 
-SA_MODULES = Registry('point_sa_module')
+SA_MODULES = Registry("point_sa_module")
 
 
 def build_sa_module(cfg, *args, **kwargs):
@@ -20,17 +19,17 @@ def build_sa_module(cfg, *args, **kwargs):
         nn.Module: Created SA module.
     """
     if cfg is None:
-        cfg_ = dict(type='PointSAModule')
+        cfg_ = dict(type="PointSAModule")
     else:
         if not isinstance(cfg, dict):
-            raise TypeError('cfg must be a dict')
-        if 'type' not in cfg:
+            raise TypeError("cfg must be a dict")
+        if "type" not in cfg:
             raise KeyError('the cfg dict must contain the key "type"')
         cfg_ = cfg.copy()
 
-    module_type = cfg_.pop('type')
+    module_type = cfg_.pop("type")
     if module_type not in SA_MODULES:
-        raise KeyError(f'Unrecognized module type {module_type}')
+        raise KeyError(f"Unrecognized module type {module_type}")
     else:
         sa_module = SA_MODULES.get(module_type)
 

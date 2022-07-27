@@ -12,83 +12,108 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 from torch.autograd import Function
+from torch.cuda.amp import custom_bwd, custom_fwd
 
 from . import ops as ops
 
 
 class SparseConvFunction(Function):
-
     @staticmethod
-    def forward(ctx, features, filters, indice_pairs, indice_pair_num,
-                num_activate_out):
+    @custom_fwd(cast_inputs=torch.half)
+    def forward(
+        ctx, features, filters, indice_pairs, indice_pair_num, num_activate_out
+    ):
         ctx.save_for_backward(indice_pairs, indice_pair_num, features, filters)
-        return ops.indice_conv(features, filters, indice_pairs,
-                               indice_pair_num, num_activate_out, False)
+        return ops.indice_conv(
+            features, filters, indice_pairs, indice_pair_num, num_activate_out, False
+        )
 
     @staticmethod
+    @custom_bwd
     def backward(ctx, grad_output):
         indice_pairs, indice_pair_num, features, filters = ctx.saved_tensors
         input_bp, filters_bp = ops.indice_conv_backward(
-            features, filters, grad_output, indice_pairs, indice_pair_num,
-            False)
+            features, filters, grad_output, indice_pairs, indice_pair_num, False
+        )
 
         return input_bp, filters_bp, None, None, None
 
 
 class SparseInverseConvFunction(Function):
-
     @staticmethod
-    def forward(ctx, features, filters, indice_pairs, indice_pair_num,
-                num_activate_out):
+    @custom_fwd(cast_inputs=torch.half)
+    def forward(
+        ctx, features, filters, indice_pairs, indice_pair_num, num_activate_out
+    ):
         ctx.save_for_backward(indice_pairs, indice_pair_num, features, filters)
-        return ops.indice_conv(features, filters, indice_pairs,
-                               indice_pair_num, num_activate_out, True, False)
+        return ops.indice_conv(
+            features,
+            filters,
+            indice_pairs,
+            indice_pair_num,
+            num_activate_out,
+            True,
+            False,
+        )
 
     @staticmethod
+    @custom_bwd
     def backward(ctx, grad_output):
         indice_pairs, indice_pair_num, features, filters = ctx.saved_tensors
         input_bp, filters_bp = ops.indice_conv_backward(
-            features, filters, grad_output, indice_pairs, indice_pair_num,
-            True, False)
+            features, filters, grad_output, indice_pairs, indice_pair_num, True, False
+        )
 
         return input_bp, filters_bp, None, None, None
 
 
 class SubMConvFunction(Function):
-
     @staticmethod
-    def forward(ctx, features, filters, indice_pairs, indice_pair_num,
-                num_activate_out):
+    @custom_fwd(cast_inputs=torch.half)
+    def forward(
+        ctx, features, filters, indice_pairs, indice_pair_num, num_activate_out
+    ):
         ctx.save_for_backward(indice_pairs, indice_pair_num, features, filters)
-        return ops.indice_conv(features, filters, indice_pairs,
-                               indice_pair_num, num_activate_out, False, True)
+        return ops.indice_conv(
+            features,
+            filters,
+            indice_pairs,
+            indice_pair_num,
+            num_activate_out,
+            False,
+            True,
+        )
 
     @staticmethod
+    @custom_bwd
     def backward(ctx, grad_output):
         indice_pairs, indice_pair_num, features, filters = ctx.saved_tensors
         input_bp, filters_bp = ops.indice_conv_backward(
-            features, filters, grad_output, indice_pairs, indice_pair_num,
-            False, True)
+            features, filters, grad_output, indice_pairs, indice_pair_num, False, True
+        )
 
         return input_bp, filters_bp, None, None, None
 
 
 class SparseMaxPoolFunction(Function):
-
     @staticmethod
-    def forward(ctx, features, indice_pairs, indice_pair_num,
-                num_activate_out):
-        out = ops.indice_maxpool(features, indice_pairs, indice_pair_num,
-                                 num_activate_out)
+    @custom_fwd(cast_inputs=torch.half)
+    def forward(ctx, features, indice_pairs, indice_pair_num, num_activate_out):
+        out = ops.indice_maxpool(
+            features, indice_pairs, indice_pair_num, num_activate_out
+        )
         ctx.save_for_backward(indice_pairs, indice_pair_num, features, out)
         return out
 
     @staticmethod
+    @custom_bwd
     def backward(ctx, grad_output):
         indice_pairs, indice_pair_num, features, out = ctx.saved_tensors
-        input_bp = ops.indice_maxpool_backward(features, out, grad_output,
-                                               indice_pairs, indice_pair_num)
+        input_bp = ops.indice_maxpool_backward(
+            features, out, grad_output, indice_pairs, indice_pair_num
+        )
         return input_bp, None, None, None
 
 

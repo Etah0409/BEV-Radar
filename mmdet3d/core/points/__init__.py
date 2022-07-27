@@ -1,10 +1,9 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from .base_points import BasePoints
 from .cam_points import CameraPoints
 from .depth_points import DepthPoints
 from .lidar_points import LiDARPoints
 
-__all__ = ['BasePoints', 'CameraPoints', 'DepthPoints', 'LiDARPoints']
+__all__ = ["BasePoints", "CameraPoints", "DepthPoints", "LiDARPoints"]
 
 
 def get_points_type(points_type):
@@ -17,14 +16,16 @@ def get_points_type(points_type):
     Returns:
         class: Points type.
     """
-    if points_type == 'CAMERA':
+    if points_type == "CAMERA":
         points_cls = CameraPoints
-    elif points_type == 'LIDAR':
+    elif points_type == "LIDAR":
         points_cls = LiDARPoints
-    elif points_type == 'DEPTH':
+    elif points_type == "DEPTH":
         points_cls = DepthPoints
     else:
-        raise ValueError('Only "points_type" of "CAMERA", "LIDAR", or "DEPTH"'
-                         f' are supported, got {points_type}')
+        raise ValueError(
+            'Only "points_type" of "CAMERA", "LIDAR", or "DEPTH"'
+            f" are supported, got {points_type}"
+        )
 
     return points_cls

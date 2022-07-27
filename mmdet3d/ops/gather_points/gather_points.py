@@ -11,8 +11,7 @@ class GatherPoints(Function):
     """
 
     @staticmethod
-    def forward(ctx, features: torch.Tensor,
-                indices: torch.Tensor) -> torch.Tensor:
+    def forward(ctx, features: torch.Tensor, indices: torch.Tensor) -> torch.Tensor:
         """forward.
 
         Args:
@@ -29,8 +28,7 @@ class GatherPoints(Function):
         _, C, N = features.size()
         output = torch.cuda.FloatTensor(B, C, npoint)
 
-        gather_points_ext.gather_points_wrapper(B, C, N, npoint, features,
-                                                indices, output)
+        gather_points_ext.gather_points_wrapper(B, C, N, npoint, features, indices, output)
 
         ctx.for_backwards = (indices, C, N)
         ctx.mark_non_differentiable(indices)
@@ -43,9 +41,9 @@ class GatherPoints(Function):
 
         grad_features = torch.cuda.FloatTensor(B, C, N).zero_()
         grad_out_data = grad_out.data.contiguous()
-        gather_points_ext.gather_points_grad_wrapper(B, C, N, npoint,
-                                                     grad_out_data, idx,
-                                                     grad_features.data)
+        gather_points_ext.gather_points_grad_wrapper(
+            B, C, N, npoint, grad_out_data, idx, grad_features.data
+        )
         return grad_features, None
 
 

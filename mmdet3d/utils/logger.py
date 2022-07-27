@@ -1,9 +1,8 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import logging
 from mmcv.utils import get_logger
 
 
-def get_root_logger(log_file=None, log_level=logging.INFO, name='mmdet3d'):
+def get_root_logger(log_file=None, log_level=logging.INFO, name="mmdet3d"):
     """Get root logger and add a keyword filter to it.
 
     The logger will be initialized if it has not been initialized. By default a

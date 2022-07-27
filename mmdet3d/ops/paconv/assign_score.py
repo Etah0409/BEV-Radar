@@ -22,12 +22,7 @@ class AssignScoreWithK(Function):
     """
 
     @staticmethod
-    def forward(ctx,
-                scores,
-                point_features,
-                center_features,
-                knn_idx,
-                aggregate='sum'):
+    def forward(ctx, scores, point_features, center_features, knn_idx, aggregate="sum"):
         """Forward.
 
         Args:
@@ -48,19 +43,28 @@ class AssignScoreWithK(Function):
         Returns:
             torch.Tensor: (B, out_dim, npoint, K), the aggregated features.
         """
-        agg = {'sum': 0, 'avg': 1, 'max': 2}
+        agg = {"sum": 0, "avg": 1, "max": 2}
 
         B, N, M, out_dim = point_features.size()
         _, npoint, K, _ = scores.size()
 
         output = point_features.new_zeros((B, out_dim, npoint, K))
         assign_score_withk_ext.assign_score_withk_forward_wrapper(
-            B, N, npoint, M, K, out_dim, agg[aggregate],
-            point_features.contiguous(), center_features.contiguous(),
-            scores.contiguous(), knn_idx.contiguous(), output)
+            B,
+            N,
+            npoint,
+            M,
+            K,
+            out_dim,
+            agg[aggregate],
+            point_features.contiguous(),
+            center_features.contiguous(),
+            scores.contiguous(),
+            knn_idx.contiguous(),
+            output,
+        )
 
-        ctx.save_for_backward(output, point_features, center_features, scores,
-                              knn_idx)
+        ctx.save_for_backward(output, point_features, center_features, scores, knn_idx)
         ctx.agg = agg[aggregate]
 
         return output
@@ -89,13 +93,24 @@ class AssignScoreWithK(Function):
         grad_scores = scores.new_zeros(scores.shape)
 
         assign_score_withk_ext.assign_score_withk_backward_wrapper(
-            B, N, npoint, M, K, out_dim, agg, grad_out.contiguous(),
-            point_features.contiguous(), center_features.contiguous(),
-            scores.contiguous(), knn_idx.contiguous(), grad_point_features,
-            grad_center_features, grad_scores)
+            B,
+            N,
+            npoint,
+            M,
+            K,
+            out_dim,
+            agg,
+            grad_out.contiguous(),
+            point_features.contiguous(),
+            center_features.contiguous(),
+            scores.contiguous(),
+            knn_idx.contiguous(),
+            grad_point_features,
+            grad_center_features,
+            grad_scores,
+        )
 
-        return grad_scores, grad_point_features, \
-            grad_center_features, None, None
+        return grad_scores, grad_point_features, grad_center_features, None, None
 
 
 assign_score_withk = AssignScoreWithK.apply
