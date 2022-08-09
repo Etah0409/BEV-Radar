@@ -54,7 +54,8 @@ train_pipeline = [
     dict(
         type='ObjectPaste',
         stop_epoch=-1,
-        db_sampler=db_sampler),
+        db_sampler=db_sampler,
+        sample_2d=True),
     dict(
         type='ImageAug3D',
         final_dim=[256, 704],

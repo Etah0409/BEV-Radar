@@ -5,14 +5,14 @@ _base_ = [
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
 
-point_cloud_range=[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
-voxel_size=[0.075, 0.075, 0.2]
-image_size=[256, 704]
+point_cloud_range = [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+voxel_size = [0.075, 0.075, 0.2]
+image_size = [256, 704]
 
 # For nuScenes we usually do 10-class detection
 class_names = ['car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-]
-map_classes = [ 
+               ]
+map_classes = [
     'drivable_area', 'ped_crossing', 'walkway', 'stop_line', 'carpark_area', 'divider'
 ]
 dataset_type = 'NuScenesDataset'
@@ -35,8 +35,8 @@ file_client_args = dict(backend='disk')
 #         './data/nuscenes/': 's3://nuscenes/nuscenes/',
 #         'data/nuscenes/': 's3://nuscenes/nuscenes/'
 #     }))
-max_epochs=20
-#augment2d=dict(
+max_epochs = 20
+# augment2d=dict(
 #    resize=[[0.48, 0.48], [0.48, 0.48]],
 #    rotate=[-0.3925, 0.3925],
 #    gridmask=dict(
@@ -45,10 +45,12 @@ max_epochs=20
 
 db_sampler = dict(
     dataset_root=data_root,
-    info_path=data_root+"nuscenes_dbinfos_train.pkl",
+    info_path=data_root + "nuscenes_dbinfos_train.pkl",
     rate=1.0,
-    prepare=dict(filter_by_difficulty=[-1], filter_by_min_points=dict(car=5, truck=5, bus=5, trailer=5, construction_vehicle=5,traffic_cone=5, barrier=5, motorcycle=5, bicycle=5, pedestrian=5)),
-    sample_groups=dict(car=2, truck=3, construction_vehicle=7, bus=4, traile=6, barrier=2, motorcycle=6, bicycle=6, pedestrian=2, traffic_cone=2),
+    prepare=dict(filter_by_difficulty=[-1], filter_by_min_points=dict(car=5, truck=5, bus=5, trailer=5,
+                 construction_vehicle=5, traffic_cone=5, barrier=5, motorcycle=5, bicycle=5, pedestrian=5)),
+    sample_groups=dict(car=2, truck=3, construction_vehicle=7, bus=4, traile=6,
+                       barrier=2, motorcycle=6, bicycle=6, pedestrian=2, traffic_cone=2),
     classes=class_names,
     points_loader=dict(
         type='LoadPointsFromFile',
@@ -77,7 +79,8 @@ train_pipeline = [
     dict(
         type='ObjectPaste',
         stop_epoch=-1,
-        db_sampler=db_sampler),
+        db_sampler=db_sampler,
+        sample_2d=True),
     dict(
         type='ImageAug3D',
         final_dim=[256, 704],
@@ -88,9 +91,9 @@ train_pipeline = [
         is_train=True),
     dict(
         type='GlobalRotScaleTrans',
-        resize_lim=[0.95, 1.05], 
-        rot_lim=[-0.3925, 0.3925],
-        trans_lim=0.0,
+        resize_lim=[0.95, 1.05],
+        rot_lim=[-0.3925 * 2, 0.3925 * 2],
+        trans_lim=[0.5],
         is_train=True),
     dict(
         type='LoadBEVSegmentation',
@@ -98,7 +101,7 @@ train_pipeline = [
         xbound=[-50.0, 50.0, 0.5],
         ybound=[-50.0, 50.0, 0.5],
         classes=map_classes),
-    dict(type='RandomFlip3D'), 
+    dict(type='RandomFlip3D'),
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
@@ -116,11 +119,12 @@ train_pipeline = [
         offset=False,
         ratio=0.5,
         mode=1,
-        prob=0.0,
-        fixed_prob=True),
+        prob=1,
+        fixed_prob=False),
     dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D', classes=class_names),
-    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=['camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
+    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=[
+         'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
 ]
 test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -169,7 +173,8 @@ test_pipeline = [
         type='DefaultFormatBundle3D',
         classes=class_names,
         with_label=False),
-    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=['camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
+    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=[
+         'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
 ]
 # construct a pipeline for data and gt loading in show function
 # please keep its loading function consistent with test_pipeline (e.g. client)
@@ -238,7 +243,7 @@ model = dict(
                     checkpoint='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth')),
             neck=dict(
                 type='GeneralizedLSSFPN',
-                in_channels=[192, 384, 768],#[512, 1024, 2048],
+                in_channels=[192, 384, 768],  # [512, 1024, 2048],
                 out_channels=256,
                 start_level=0,
                 num_outs=3,
@@ -323,11 +328,11 @@ model = dict(
         bn_momentum=0.1,
         activation='relu',
         common_heads=dict(
-        center=[2, 2],
-        height=[1, 2],
-        dim=[3, 2],
-        rot=[2, 2],
-        vel=[2, 2]),
+            center=[2, 2],
+            height=[1, 2],
+            dim=[3, 2],
+            rot=[2, 2],
+            vel=[2, 2]),
         bbox_coder=dict(
             type='TransFusionBBoxCoder',
             pc_range=point_cloud_range[:2],
@@ -362,22 +367,22 @@ model = dict(
             pos_weight=-1,
             code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2],
             assigner=dict(
-            type='HungarianAssigner3D',
-            iou_calculator=dict(
-                type='BboxOverlaps3D',
-                coordinate='lidar',
-            ),
-            cls_cost=dict(
-                type='FocalLossCost',
-                gamma=2.0,
-                alpha=0.25,
-                weight=0.15),
-            reg_cost=dict(
-                type='BBoxBEVL1Cost',
-                weight=0.25),
-            iou_cost=dict(
-                type='IoU3DCost',
-                weight=0.25))),
+                type='HungarianAssigner3D',
+                iou_calculator=dict(
+                    type='BboxOverlaps3D',
+                    coordinate='lidar',
+                ),
+                cls_cost=dict(
+                    type='FocalLossCost',
+                    gamma=2.0,
+                    alpha=0.25,
+                    weight=0.15),
+                reg_cost=dict(
+                    type='BBoxBEVL1Cost',
+                    weight=0.25),
+                iou_cost=dict(
+                    type='IoU3DCost',
+                    weight=0.25))),
         test_cfg=dict(
             dataset='nuScenes',
             grid_size=[1440, 1440, 41],
@@ -385,11 +390,11 @@ model = dict(
             voxel_size=voxel_size[:2],
             pc_range=point_cloud_range[:2],
             nms_type=None
-            )))
+        )))
 
 optimizer = dict(
-    type='AdamW', 
-    lr=2e-4,
+    type='AdamW',
+    lr=1e-4,
     weight_decay=0.01)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -405,5 +410,5 @@ momentum_config = dict(
     step_ratio_up=0.4)
 total_epochs = 20
 
-runner = dict(type='EpochBasedRunner', max_epochs=20)
+runner = dict(type='CustomEpochBasedRunner', max_epochs=20)
 evaluation = dict(interval=2)

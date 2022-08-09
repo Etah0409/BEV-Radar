@@ -39,7 +39,7 @@ class BaseTransform(nn.Module):
         self.zbound = zbound
         self.dbound = dbound
 
-        dx, bx, nx = gen_dx_bx(self.xbound, self.ybound, self.zbound)
+        dx, bx, nx = gen_dx_bx(self.xbound, self.ybound, self.zbound) # [-51.2, 51.2, 0.4], [-51.2, 51.2, 0.4], [-10.0, 10.0, 20.0] 
         self.dx = nn.Parameter(dx, requires_grad=False)
         self.bx = nn.Parameter(bx, requires_grad=False)
         self.nx = nn.Parameter(nx, requires_grad=False)
@@ -54,7 +54,7 @@ class BaseTransform(nn.Module):
         iH, iW = self.image_size # [256, 704]
         fH, fW = self.feature_size # [32, 88]
 
-        ds = (
+        ds = ( #[1, 60, 0,5]
             torch.arange(*self.dbound, dtype=torch.float)
             .view(-1, 1, 1)
             .expand(-1, fH, fW)
@@ -63,13 +63,13 @@ class BaseTransform(nn.Module):
 
         xs = (
             torch.linspace(0, iW - 1, fW, dtype=torch.float)
-            .view(1, 1, fW)
-            .expand(D, fH, fW)
+            .view(1, 1, fW) # [0, 704, 704/8]
+            .expand(D, fH, fW) #[118, 32, 88]
         )
         ys = (
             torch.linspace(0, iH - 1, fH, dtype=torch.float)
             .view(1, fH, 1)
-            .expand(D, fH, fW)
+            .expand(D, fH, fW) #[118, 32, 88]
         )
 
         frustum = torch.stack((xs, ys, ds), -1)
@@ -89,7 +89,7 @@ class BaseTransform(nn.Module):
     ):
         B, N, _ = trans.shape
         # undo post-transformation
-        # B x N x D x H x W x 3
+        # B x N x D x H x W x 3   图像跟ptc 分开增强的；图像做旋转时会记录下augmentation_matrix-> post_rots，gt不会变的；ptc做增强gt会跟着转
         points = self.frustum - post_trans.view(B, N, 1, 1, 1, 3)# [118, 32, 88, 3] - [4, 6, 1, 1, 1, 3] -> [4, 6, 118, 32, 88, 3]
         points = (
             torch.inverse(post_rots)
@@ -102,11 +102,11 @@ class BaseTransform(nn.Module):
                 points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                 points[:, :, :, :, :, 2:3],
             ),
-            5,
-        )
-        combine = rots.matmul(torch.inverse(intrins))
-        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
-        points += trans.view(B, N, 1, 1, 1, 3)
+            5, # (ud, vd, d)
+        )  # (u,v, d） -> (x, y, z)
+        combine = rots.matmul(torch.inverse(intrins)) #rots: camera2ego 
+        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1) # r * K- * p(ud, vd, d) + T
+        points += trans.view(B, N, 1, 1, 1, 3) #trans: camera2ego
         # ego_to_lidar
         points -= lidar2ego_trans.view(B, 1, 1, 1, 1, 3)
         points = (
@@ -116,7 +116,7 @@ class BaseTransform(nn.Module):
             .squeeze(-1)
         )
 
-        if "extra_rots" in kwargs:
+        if "extra_rots" in kwargs: # ptc, gt 一起转
             extra_rots = kwargs["extra_rots"]
             points = (
                 extra_rots.view(B, 1, 1, 1, 1, 3, 3)
@@ -241,14 +241,19 @@ class BaseDepthTransform(BaseTransform):
         depth = torch.zeros(batch_size, 6, 1, *self.image_size).to(points[0].device)
 
         for b in range(batch_size):
-            cur_coords = points[b][:, :3].transpose(1, 0)
+            cur_coords = points[b][:, :3].transpose(1, 0) #[3, N]
             cur_img_aug_matrix = img_aug_matrix[b]
             cur_lidar_aug_matrix = lidar_aug_matrix[b]
             cur_lidar2image = lidar2image[b]
 
+            # aug_lidar2lidar change
+            cur_aug_lidar2lidar = torch.inverse(cur_lidar_aug_matrix) #[4, 4]
+            cur_coords = cur_aug_lidar2lidar[:3, :3].matmul(cur_coords) # [3, N]
+            cur_coords -= cur_aug_lidar2lidar[:3, 3].reshape(3, 1) #[3] -> [3, 1]
+
             # lidar2image
-            cur_coords = cur_lidar2image[:, :3, :3].matmul(cur_coords)
-            cur_coords += cur_lidar2image[:, :3, 3].reshape(-1, 3, 1)
+            cur_coords = cur_lidar2image[:, :3, :3].matmul(cur_coords) #[6, 3, N]
+            cur_coords += cur_lidar2image[:, :3, 3].reshape(-1, 3, 1) # [6, 3] -> [6, 3, 1]
             # get 2d coords
             dist = cur_coords[:, 2, :]
             cur_coords[:, 2, :] = torch.clamp(cur_coords[:, 2, :], 1e-5, 1e5)
@@ -281,6 +286,8 @@ class BaseDepthTransform(BaseTransform):
             post_trans,
             lidar2ego_rots,
             lidar2ego_trans,
+            extra_rots=extra_rots, #change
+            extra_trans=extra_trans #change
         )
 
         x = self.get_cam_feats(img, depth)

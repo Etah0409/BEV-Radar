@@ -135,12 +135,13 @@ class GlobalRotScaleTrans:
         if self.is_train:
             scale = random.uniform(*self.resize_lim)
             theta = random.uniform(*self.rot_lim)
-            translation = np.array([random.normal(0, self.trans_lim) for i in range(3)])
+            translation = np.array([random.normal(0, self.trans_lim) for i in range(3)]).reshape(1, -1)
+            pts_translation = translation.repeat(data["points"].shape[0], axis=0)
             rotation = np.eye(3)
 
             if "points" in data:
                 data["points"].rotate(-theta)
-                data["points"].translate(translation)
+                data["points"].translate(pts_translation)
                 data["points"].scale(scale)
 
             gt_boxes = data["gt_bboxes_3d"]
@@ -183,7 +184,7 @@ class GridMask:
         self.fixed_prob = fixed_prob
 
     def set_epoch(self, epoch):
-        self.epoch = epoch
+        self.epoch = epoch + 1
         if not self.fixed_prob:
             self.set_prob(self.epoch, self.max_epoch)
 
@@ -224,7 +225,7 @@ class GridMask:
         mask = mask.rotate(r)
         mask = np.asarray(mask)
         mask = mask[
-            (hh - h) // 2 : (hh - h) // 2 + h, (ww - w) // 2 : (ww - w) // 2 + w
+            (hh - h) // 2: (hh - h) // 2 + h, (ww - w) // 2: (ww - w) // 2 + w
         ]
 
         mask = mask.astype(np.float32)
@@ -293,7 +294,7 @@ class ObjectPaste:
         self.stop_epoch = stop_epoch
 
     def set_epoch(self, epoch):
-        self.epoch = epoch
+        self.epoch = epoch + 1
 
     @staticmethod
     def remove_points_in_boxes(points, boxes):

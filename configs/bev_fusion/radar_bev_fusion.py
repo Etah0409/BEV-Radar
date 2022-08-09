@@ -1,10 +1,10 @@
 _base_ = [
-    '../_base_/datasets/bev-radar-nus.py', 
+    '../_base_/datasets/bev-radar-nus.py',
     '../_base_/default_runtime.py'
 ]
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-image_size=[256, 704]
-voxel_size=[0.1, 0.1, 0.2]
+image_size = [256, 704]
+voxel_size = [0.1, 0.1, 0.2]
 
 model = dict(
     type='RadarBEVFusion',
@@ -60,7 +60,7 @@ model = dict(
                 max_num_points=10,
                 point_cloud_range=point_cloud_range,
                 voxel_size=[0.8, 0.8, 8.0],
-                max_voxels=[30000, 40000]),#[90000, 120000]),
+                max_voxels=[30000, 40000]),  # [90000, 120000]),
             radar_voxel_encoder=dict(
                 type='PillarFeatureNet',
                 in_channels=8,
@@ -119,7 +119,8 @@ model = dict(
             pre_max_size=1000,
             post_max_size=83,
             nms_thr=0.2),
-        tasks=[['car'], ['truck', 'construction_vehicle'], ['bus', 'trailer'], ['barrier'], ['motorcycle', 'bicycle'], ['pedestrian', 'traffic_cone']],
+        tasks=[['car'], ['truck', 'construction_vehicle'], ['bus', 'trailer'], [
+            'barrier'], ['motorcycle', 'bicycle'], ['pedestrian', 'traffic_cone']],
         common_heads=dict(
             reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
         share_conv_channel=64,
@@ -139,7 +140,7 @@ model = dict(
         norm_bbox=True))
 
 optimizer = dict(
-    type='AdamW', 
+    type='AdamW',
     lr=2e-4,
     weight_decay=0.01)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
@@ -155,5 +156,5 @@ momentum_config = dict(
     cyclic_times=1,
     step_ratio_up=0.4)
 total_epochs = 20
-runner = dict(type='EpochBasedRunner', max_epochs=20)
+runner = dict(type='CustomEpochBasedRunner', max_epochs=20)
 evaluation = dict(interval=1)

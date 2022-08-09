@@ -840,7 +840,7 @@ class TransFusionHead(nn.Module):
             dense_heatmap_img = None
             if self.fuse_img:
                 dense_heatmap_img = self.heatmap_head_img(bev_feat.view(lidar_feat.shape))  # [BS, num_classes, H, W]
-                heatmap = (dense_heatmap.detach().sigmoid() + dense_heatmap_img.detach().sigmoid()) / 2
+                heatmap = (dense_heatmap.detach().sigmoid() + dense_heatmap_img.detach().sigmoid()) / 2 # [BS, num_classes, H, W]
             else:
                 heatmap = dense_heatmap.detach().sigmoid()
             padding = self.nms_kernel_size // 2
@@ -855,7 +855,7 @@ class TransFusionHead(nn.Module):
             elif self.test_cfg['dataset'] == 'Waymo':  # for Pedestrian & Cyclist in Waymo
                 local_max[:, 1, ] = F.max_pool2d(heatmap[:, 1], kernel_size=1, stride=1, padding=0)
                 local_max[:, 2, ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
-            heatmap = heatmap * (heatmap == local_max)
+            heatmap = heatmap * (heatmap == local_max) # reserve max in neighbor
             heatmap = heatmap.view(batch_size, heatmap.shape[1], -1)
 
             # top #num_proposals among all classes
