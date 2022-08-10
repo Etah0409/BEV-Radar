@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/datasets/bev-radar-nus.py',
+    '../_base_/datasets/bev-radar-nus-mini.py',
     '../_base_/default_runtime.py'
 ]
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
@@ -7,7 +7,7 @@ image_size = [256, 704]
 voxel_size = [0.1, 0.1, 8.0]
 
 model = dict(
-    type='RadarBEVFusion',
+    type='RadarBEVFusion_v2',
     encoders=dict(
         camera=dict(
             backbone=dict(
@@ -103,6 +103,11 @@ model = dict(
                 type='deconv',
                 bias=False),
             use_conv_for_no_stride=True)),
+    radar_head=dict(
+        type='RadarPreHead',
+        num_proposals=100,
+        
+    ),
     heads=dict(
         type='TransFusionHead',
         num_proposals=200,

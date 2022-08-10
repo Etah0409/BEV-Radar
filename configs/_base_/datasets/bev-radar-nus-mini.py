@@ -1,11 +1,11 @@
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
-point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]#[-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]  # [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
 
 # For nuScenes we usually do 10-class detection
 class_names = ['car', 'truck', 'construction_vehicle', 'bus', 'trailer', 'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone'
-]
-map_classes = [ 
+               ]
+map_classes = [
     'drivable_area', 'ped_crossing', 'walkway', 'stop_line', 'carpark_area', 'divider'
 ]
 dataset_type = 'NuScenesDataset'
@@ -28,8 +28,8 @@ file_client_args = dict(backend='disk')
 #         './data/nuscenes/': 's3://nuscenes/nuscenes/',
 #         'data/nuscenes/': 's3://nuscenes/nuscenes/'
 #     }))
-max_epochs=20
-#augment2d=dict(
+max_epochs = 20
+# augment2d=dict(
 #    resize=[[0.48, 0.48], [0.48, 0.48]],
 #    rotate=[-0.3925, 0.3925],
 #    gridmask=dict(
@@ -38,10 +38,12 @@ max_epochs=20
 
 db_sampler = dict(
     dataset_root=data_root,
-    info_path=data_root+"nuscenes_dbinfos_train.pkl",
+    info_path=data_root + "nuscenes_dbinfos_train.pkl",
     rate=1.0,
-    prepare=dict(filter_by_difficulty=[-1], filter_by_min_points=dict(car=5, truck=5, bus=5, trailer=5, construction_vehicle=5,traffic_cone=5, barrier=5, motorcycle=5, bicycle=5, pedestrian=5)),
-    sample_groups=dict(car=2, truck=3, construction_vehicle=7, bus=4, traile=6, barrier=2, motorcycle=6, bicycle=6, pedestrian=2, traffic_cone=2),
+    prepare=dict(filter_by_difficulty=[-1], filter_by_min_points=dict(car=5, truck=5, bus=5, trailer=5,
+                 construction_vehicle=5, traffic_cone=5, barrier=5, motorcycle=5, bicycle=5, pedestrian=5)),
+    sample_groups=dict(car=2, truck=3, construction_vehicle=7, bus=4, traile=6,
+                       barrier=2, motorcycle=6, bicycle=6, pedestrian=2, traffic_cone=2),
     classes=class_names,
     points_loader=dict(
         type='Loadnuradarpoints',
@@ -66,9 +68,9 @@ train_pipeline = [
         is_train=True),
     dict(
         type='GlobalRotScaleTrans',
-        resize_lim=[0.95, 1.05], 
+        resize_lim=[0.95, 1.05],
         rot_lim=[-0.3925, 0.3925],
-        trans_lim=0.0,
+        trans_lim=0.5,
         is_train=True),
     dict(
         type='LoadBEVSegmentation',
@@ -76,7 +78,7 @@ train_pipeline = [
         xbound=[-50.0, 50.0, 0.5],
         ybound=[-50.0, 50.0, 0.5],
         classes=map_classes),
-    dict(type='RandomFlip3D'), 
+    dict(type='RandomFlip3D'),
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
@@ -98,7 +100,8 @@ train_pipeline = [
         fixed_prob=True),
     dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D', classes=class_names),
-    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=['camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
+    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=[
+         'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
 ]
 test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -135,7 +138,8 @@ test_pipeline = [
         type='DefaultFormatBundle3D',
         classes=class_names,
         with_label=False),
-    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=['camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
+    dict(type='Collect3D', keys=['img', 'points', 'gt_bboxes_3d', 'gt_labels_3d', 'gt_masks_bev'], meta_keys=[
+         'camera_intrinsics', 'camera2ego', 'lidar2ego', 'lidar2camera', 'lidar2image', 'img_aug_matrix', 'lidar_aug_matrix'])
 ]
 # construct a pipeline for data and gt loading in show function
 # please keep its loading function consistent with test_pipeline (e.g. client)

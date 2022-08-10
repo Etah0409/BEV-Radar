@@ -38,7 +38,7 @@ class RadarConvFuser(BaseModule):
         super().init_weights()
         normal_init(self.fuse_conv, mean=0, std=0.001)
         for i in enumerate(self.deconv):
-            normal_init(i, mean=0, std=0.001)    
+            normal_init(i, mean=0, std=0.001)
 
     def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
         res = torch.cat(inputs, dim=1)
@@ -48,6 +48,7 @@ class RadarConvFuser(BaseModule):
         for layer in self.deconv:
             out = layer(out)
         return out
+
 
 @FUSERS.register_module()
 class ConvFuser(nn.Sequential):
